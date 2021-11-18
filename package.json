@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/SavjeeTutorials/SavjeeCoin",
   "dependencies": {
+    "crypto-js": "^4.1.1",
     "debug": "^4.1.1",
     "elliptic": "^6.5.4"
   },
