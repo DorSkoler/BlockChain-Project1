@@ -35,7 +35,7 @@ console.log();
 console.log(`Balance of xavier is ${savjeeCoin.getBalanceOfAddress(myWalletAddress)}`);
 
 // Uncomment this line if you want to test tampering with the chain
-savjeeCoin.chain[1].transactions[0].amount = 10;
+// savjeeCoin.chain[1].transactions[0].amount = 10;
 
 // Check if the chain is valid
 
