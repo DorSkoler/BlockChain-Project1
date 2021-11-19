@@ -26,7 +26,8 @@
     "debug": "^4.1.1",
     "elliptic": "^6.5.4",
     "fs": "^0.0.1-security",
-    "fs-extra": "^10.0.0"
+    "fs-extra": "^10.0.0",
+    "merkletreejs": "^0.2.24"
   },
   "devDependencies": {
     "coveralls": "^3.0.6",
