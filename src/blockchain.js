@@ -1,4 +1,6 @@
 const crypto = require('crypto');
+const {MerkleTree} = require('merkletreejs')
+const SHA256 = require('crypto-js/sha256')
 const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 const debug = require('debug')('savjeecoin:blockchain');
@@ -24,6 +26,10 @@ class Transaction {
   calculateHash() {
     return crypto.createHash('sha256').update(this.fromAddress + this.toAddress + this.amount + this.timestamp).digest('hex');
   }
+  // calculateHash(data) {
+  //   return crypto.createHash('sha256').update(data).digest('hex');
+  // }
+
 
   /**
    * Signs a transaction with the given signingKey (which is an Elliptic keypair
@@ -80,7 +86,14 @@ class Block {
     this.timestamp = timestamp;
     this.transactions = transactions;
     this.nonce = 0;
+    this.merkleTree = new MerkleTree(this.transactions.map(x=>SHA256(x)),SHA256)
     this.hash = this.calculateHash();
+    console.log("h: "+this.hash);
+    console.log("h1: "+crypto.createHash('sha256').update(this.previousHash + this.timestamp + JSON.stringify(this.transactions) + this.nonce).digest('hex'));
+    // const root = merkleTree.getRoot().toString('hex')
+    // const leaf = SHA256(this.transactions[0])
+    // const proof= merkleTree.getProof(leaf)
+    //console.log("verify "+this.hash.verify(this.hash.getProof,SHA256(this.transactions[0]),this.hash.getRoot()));
   }
 
   /**
@@ -90,7 +103,11 @@ class Block {
    * @returns {string}
    */
   calculateHash() {
-    return crypto.createHash('sha256').update(this.previousHash + this.timestamp + JSON.stringify(this.transactions) + this.nonce).digest('hex');
+
+    // merkleTree.toString('hex')
+    // return merkleTree.getHexRoot()
+    //return crypto.createHash('sha256').update(merkleTree).digest('hex');
+    return crypto.createHash('sha256').update(this.previousHash + this.timestamp + this.merkleTree.getHexRoot() + this.nonce).digest('hex');
   }
 
   /**
@@ -128,7 +145,7 @@ class Block {
 class Blockchain {
   constructor() {
     this.chain = [this.createGenesisBlock()];
-    this.difficulty = 4;
+    this.difficulty = 2;
     this.pendingTransactions = [];
     this.miningReward = 100;
   }
