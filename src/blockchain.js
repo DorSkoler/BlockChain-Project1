@@ -26,9 +26,7 @@ class Transaction {
   calculateHash() {
     return crypto.createHash('sha256').update(this.fromAddress + this.toAddress + this.amount + this.timestamp).digest('hex');
   }
-  // calculateHash(data) {
-  //   return crypto.createHash('sha256').update(data).digest('hex');
-  // }
+
 
 
   /**
@@ -47,7 +45,7 @@ class Transaction {
     
 
     // Calculate the hash of this transaction, sign it with the key
-    // and store it inside the transaction obect
+    // and store it inside the transaction object
     const hashTx = this.calculateHash();
     const sig = signingKey.sign(hashTx, 'base64');
 
@@ -69,7 +67,6 @@ class Transaction {
     if (!this.signature || this.signature.length === 0) {
       throw new Error('No signature in this transaction');
     }
-
     const publicKey = ec.keyFromPublic(this.fromAddress, 'hex');
     return publicKey.verify(this.calculateHash(), this.signature);
   }
@@ -86,14 +83,11 @@ class Block {
     this.timestamp = timestamp;
     this.transactions = transactions;
     this.nonce = 0;
-    this.merkleTree = new MerkleTree(this.transactions.map(x=>SHA256(x)),SHA256)
+    this.leaves= this.transactions.map(x=>SHA256(x.signature))
+    this.merkleTree = new MerkleTree(this.leaves,SHA256)
+    this.merkleTreeRoot = this.merkleTree.getHexRoot()
     this.hash = this.calculateHash();
-    console.log("h: "+this.hash);
-    console.log("h1: "+crypto.createHash('sha256').update(this.previousHash + this.timestamp + JSON.stringify(this.transactions) + this.nonce).digest('hex'));
-    // const root = merkleTree.getRoot().toString('hex')
-    // const leaf = SHA256(this.transactions[0])
-    // const proof= merkleTree.getProof(leaf)
-    //console.log("verify "+this.hash.verify(this.hash.getProof,SHA256(this.transactions[0]),this.hash.getRoot()));
+
   }
 
   /**
@@ -107,7 +101,10 @@ class Block {
     // merkleTree.toString('hex')
     // return merkleTree.getHexRoot()
     //return crypto.createHash('sha256').update(merkleTree).digest('hex');
-    return crypto.createHash('sha256').update(this.previousHash + this.timestamp + this.merkleTree.getHexRoot() + this.nonce).digest('hex');
+       return crypto.createHash('sha256').update(this.previousHash + this.timestamp + this.merkleTreeRoot + this.nonce).digest('hex');
+
+    // testing hash only with merkle tree root
+    // return crypto.createHash('sha256').update(this.merkleTree.getHexRoot()+this.nonce).digest('hex');
   }
 
   /**
@@ -177,7 +174,6 @@ class Blockchain {
   minePendingTransactions(miningRewardAddress) {
     const rewardTx = new Transaction(null, miningRewardAddress, this.miningReward);
     this.pendingTransactions.push(rewardTx);
-
     const block = new Block(Date.now(), this.pendingTransactions, this.getLatestBlock().hash);
     block.mineBlock(this.difficulty);
 
@@ -302,6 +298,53 @@ class Blockchain {
   }
 }
 
+class SPV {
+  constructor(Blockchain){
+    this.blockChainHeaders = this.addSPVHeaders(Blockchain)
+  }
+
+ /**
+   * Add all headers from the blockchain without the transactions of each block.
+   *
+   * @param {Blockchain} Blockchain
+   */
+    addSPVHeaders(Blockchain){
+      const blockHeaders = []
+      for (let index = 0; index < Blockchain.length; index++) {
+        const block = Blockchain[index]
+        const newHeader = {
+          blockID: index+1,
+          blockNonce: block.nonce,
+          blockHash:block.hash,
+          blockMerkle:block.merkleTree,
+          blockMerkleRoot:block.merkleTreeRoot,
+          blockTimestamp: block.timestamp,
+          blockPrevHash: block.previousHash
+        }
+        blockHeaders.push(newHeader)
+      }
+      return blockHeaders
+    }
+  /**
+   * Checking whether a transaction is inside a block and if that transaction is valid.
+   *
+   * @param {Transaction} transaction
+   */
+    isTsxInBlockChain(tsx){
+        const leafTx = SHA256(tsx.signature)
+        for (let i=0; i<this.blockChainHeaders.length ; i++) {
+            const merkleTree = this.blockChainHeaders[i].blockMerkle
+            const merkleTreeRoot = this.blockChainHeaders[i].blockMerkleRoot
+            const proof = merkleTree.getProof(leafTx)
+            if(merkleTree.verify(proof,leafTx,merkleTreeRoot) && tsx.isValid())
+              return true
+        }
+        return false
+    }
+
+}
+
 module.exports.Blockchain = Blockchain;
 module.exports.Block = Block;
 module.exports.Transaction = Transaction;
+module.exports.SPV = SPV

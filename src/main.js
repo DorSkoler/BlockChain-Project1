@@ -1,4 +1,5 @@
-const { Blockchain, Transaction } = require('./blockchain');
+const { Blockchain, Transaction,SPV } = require('./blockchain');
+const SHA256 = require('crypto-js/sha256')
 const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 
@@ -8,7 +9,7 @@ const myKey = ec.genKeyPair();
 
 // From that we can calculate your public key (which doubles as your wallet address)
 const myWalletAddress = myKey.getPublic('hex');
-
+console.log(myWalletAddress);
 // Create new instance of Blockchain class
 const savjeeCoin = new Blockchain();
 
@@ -19,6 +20,7 @@ savjeeCoin.minePendingTransactions(myWalletAddress);
 const tx1 = new Transaction(myWalletAddress, 'address2', 100);
 tx1.signTransaction(myKey);
 savjeeCoin.addTransaction(tx1);
+console.log(tx1);
 
 // Mine block
 savjeeCoin.minePendingTransactions(myWalletAddress);
@@ -34,10 +36,13 @@ savjeeCoin.minePendingTransactions(myWalletAddress);
 console.log();
 console.log(`Balance of xavier is ${savjeeCoin.getBalanceOfAddress(myWalletAddress)}`);
 
-// Uncomment this line if you want to test tampering with the chain
-// savjeeCoin.chain[1].transactions[0].amount = 10;
-
 // Check if the chain is valid
 
 console.log();
 console.log('Blockchain valid?', savjeeCoin.isChainValid() ? 'Yes' : 'No');
+const SPVWallet =new SPV(savjeeCoin.chain)
+
+console.log(savjeeCoin.getAllTransactionsForWallet(myWalletAddress));
+
+
+
