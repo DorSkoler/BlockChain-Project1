@@ -5,11 +5,12 @@ function memPool () {
     const myKey = ec.genKeyPair();
     const walletAddress = myKey.getPublic("hex");
     const transactions = [];
-    for (let i = 0; i < 30; i++){
-      const tx = new Transaction(walletAddress, "address2", Math.floor(Math.random() * 100) + 1);
-      tx.signTransaction(myKey);
-      transactions.push(tx);
-      
+    for (let i = 0; i < 10; i++){
+      for (let i = 0; i < 3; i++){
+        const tx = new Transaction(walletAddress, "address2", Math.floor(Math.random() * 100) + 1);
+        tx.signTransaction(myKey);
+        transactions.push(tx);
+      }
     }
     return transactions;
   };

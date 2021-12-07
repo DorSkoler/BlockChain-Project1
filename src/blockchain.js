@@ -78,7 +78,7 @@ class Block {
    * @param {Transaction[]} transactions
    * @param {string} previousHash
    */
-  constructor(timestamp, transactions, previousHash = '') {
+  constructor(timestamp, transactions, previousHash = '', id) {
     this.previousHash = previousHash;
     this.timestamp = timestamp;
     this.transactions = transactions;
@@ -87,7 +87,7 @@ class Block {
     this.merkleTree = new MerkleTree(this.leaves,SHA256)
     this.merkleTreeRoot = this.merkleTree.getHexRoot()
     this.hash = this.calculateHash();
-
+    this.id = id;
   }
 
   /**
@@ -151,7 +151,7 @@ class Blockchain {
    * @returns {Block}
    */
   createGenesisBlock() {
-    return new Block(Date.parse('2017-01-01'), [], '0');
+    return new Block(Date.parse('2017-01-01'), [], '0', 0);
   }
 
   /**
@@ -174,7 +174,7 @@ class Blockchain {
   minePendingTransactions(miningRewardAddress) {
     const rewardTx = new Transaction(null, miningRewardAddress, this.miningReward);
     this.pendingTransactions.push(rewardTx);
-    const block = new Block(Date.now(), this.pendingTransactions, this.getLatestBlock().hash);
+    const block = new Block(Date.now(), this.pendingTransactions, this.getLatestBlock().hash, this.chain.length);
     block.mineBlock(this.difficulty);
 
     debug('Block successfully mined!');
@@ -205,9 +205,11 @@ class Blockchain {
     }
     
     // Making sure that the amount sent is not greater than existing balance
+    transaction.amount += this.chain.length
     if (this.getBalanceOfAddress(transaction.fromAddress) < transaction.amount) {
       throw new Error('Not enough balance');
     }
+    
 
     this.pendingTransactions.push(transaction);
     debug('transaction added: %s', transaction);
