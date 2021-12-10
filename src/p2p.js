@@ -1,6 +1,5 @@
 const topology = require('fully-connected-topology')
 const { Blockchain, Transaction, SPV } = require('./blockchain');
-const { mySPVWalletAddress1, SPVWallet1, mySPVWalletAddress2, SPVWallet2, miner, blockchain } = require('./main');
 const {
     stdin,
     exit,
@@ -30,6 +29,7 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
     log('connected to peer - ', peerPort)
 
     sockets[peerPort] = socket
+    
     stdin.on('data', data => { //on user input
         const message = data.toString().trim()
         if (message === 'exit') { //on exit
@@ -37,9 +37,7 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
             exit(0)
         }
 
-        
         const receiverPeer = extractReceiverPeer(message)
-        message = extractMessageToSpecificPeer(message)
         
 
         if (sockets[receiverPeer]) { //message to specific peer
@@ -92,4 +90,8 @@ function extractReceiverPeer(message) {
 //'4000>hello' -> '>hello'
 function extractMessageToSpecificPeer(message) {
     return message.slice(4, message.length);
+}
+
+function getNetBalance() {
+    return blockchain.getBalanceOfAddress(myWalletAddress) + blockchain.getBalanceOfAddress(myWalletAddress2) + blockchain.getBalanceOfAddress(miner)
 }
