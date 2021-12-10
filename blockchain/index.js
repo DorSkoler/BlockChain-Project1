@@ -1,3 +1,5 @@
+
+
 const { Block } = require('./block')
 const debug = require('debug')('savjeecoin:blockchain');
 
@@ -162,5 +164,5 @@ class Blockchain {
     }
   }
 
-  module.exports.Blockchain = Blockchain;
+  module.exports = Blockchain;
   

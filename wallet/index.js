@@ -3,8 +3,8 @@ const { ChainUtil } = require('../keyGen')
 class SPV {
     constructor(Blockchain) {
         this.blockChainHeaders = this.addSPVHeaders(Blockchain)
-        this.keyPair = ChainUtil.genKeyPair()
-        this.publicKey = this.keyPair.genPublic().encode('hex');
+        this.keyPair = ChainUtil.getKeyPair()
+        this.publicKey = this.keyPair.getPublic('hex')
     }
 
     toString() {
@@ -54,4 +54,4 @@ class SPV {
 
 }
 
-module.exports.SPV = SPV
+module.exports = SPV

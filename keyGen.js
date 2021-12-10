@@ -7,7 +7,7 @@ const SHA256 = require('crypto-js/sha256');
 
 class ChainUtil{
 
-    static genKeyPair(){
+    static getKeyPair(){
         return ec.genKeyPair();
     }
 
@@ -31,4 +31,4 @@ class ChainUtil{
 
 }
 
-module.exports = ChainUtil;
+module.exports.ChainUtil = ChainUtil;

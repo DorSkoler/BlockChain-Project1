@@ -23,6 +23,10 @@ log('connecting to peers...')
 const myIp = toLocalIp(me)
 const peerIps = getPeerIps(peers)
 
+if (me === '1111') {
+    const { SPVWallet, SPVWallet2, miner, blockchain } = require('./main')
+}
+
 //connect to peers
 topology(myIp, peerIps).on('connection', (socket, peerIp) => {
     const peerPort = extractPortFromIp(peerIp)
@@ -37,6 +41,11 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
             exit(0)
         }
 
+        if (message === 'net balance' && me === '1111') {
+            const balance = getNetBalance()
+            socket[me].write(formatMessage(`net balance is: ${balance}`))
+            return
+        } 
         const receiverPeer = extractReceiverPeer(message)
         
 
@@ -93,5 +102,5 @@ function extractMessageToSpecificPeer(message) {
 }
 
 function getNetBalance() {
-    return blockchain.getBalanceOfAddress(myWalletAddress) + blockchain.getBalanceOfAddress(myWalletAddress2) + blockchain.getBalanceOfAddress(miner)
+    return blockchain.getBalanceOfAddress(SPVWallet.publicKey) + blockchain.getBalanceOfAddress(SPVWallet2.publicKey) + blockchain.getBalanceOfAddress(miner)
 }

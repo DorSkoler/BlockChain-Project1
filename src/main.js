@@ -1,11 +1,6 @@
-//import {mempool} from './transactions.js';
 const { Blockchain, Transaction, SPV } = require('./blockchain');
-const SHA256 = require('crypto-js/sha256')
 const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
-const { memPool } = require('./transactions');
-
-
 
 // Your private key goes here
 const myKey = ec.genKeyPair();
@@ -33,7 +28,7 @@ blockchain.minePendingTransactions(miner);
 // savjeeCoin.pendingTransactions=memPool();
 for (let i = 0; i < 9; i++) {
     for (let i = 0; i < 3; i++) {
-        const amount = Math.floor(Math.random() * 10) + 1
+        const amount = Math.floor(Math.random() * 30) + 1
         try {
             const tx = new Transaction(myWalletAddress, myWalletAddress2, amount);
             tx.signTransaction(myKey);
@@ -56,12 +51,10 @@ console.log(`Balance of miner is ${blockchain.getBalanceOfAddress(miner)}`);
 
 // console.log();
 // console.log('Blockchain valid?', savjeeCoin.isChainValid() ? 'Yes' : 'No');
-const SPVWallet = new SPV(blockchain.chain)
-const SPVWallet2 = new SPV(blockchain.chain)
+const SPVWallet = new SPV(blockchain.chain, myKey, myWalletAddress)
+const SPVWallet2 = new SPV(blockchain.chain, myKey2, myWalletAddress2)
 
-module.exports.myWalletAddress = myWalletAddress
 module.exports.SPVWallet = SPVWallet
-module.exports.myWalletAddress2 = myWalletAddress2
 module.exports.SPVWallet2 = SPVWallet2
 module.exports.miner = miner
 module.exports.blockchain = blockchain

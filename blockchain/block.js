@@ -1,6 +1,7 @@
 const { MerkleTree } = require('merkletreejs')
 const { Transaction } = require('../wallet/transactions')
 const crypto = require('crypto');
+const SHA256 = require('crypto-js/sha256')
 
 class Block {
     /**
