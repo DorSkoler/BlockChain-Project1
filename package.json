@@ -27,6 +27,7 @@
     "elliptic": "^6.5.4",
     "fs": "^0.0.1-security",
     "fs-extra": "^10.0.0",
+    "fully-connected-topology": "^1.1.1",
     "merkletreejs": "^0.2.24"
   },
   "devDependencies": {

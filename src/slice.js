@@ -1,0 +1,1 @@
+console.log("4023038384 hiddijf".slice(4));

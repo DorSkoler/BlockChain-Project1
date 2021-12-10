@@ -54,12 +54,16 @@ console.log(`Balance of miner is ${savjeeCoin.getBalanceOfAddress(miner)}`);
 
 // // Check if the chain is valid
 
-console.log();
-console.log('Blockchain valid?', savjeeCoin.isChainValid() ? 'Yes' : 'No');
+// console.log();
+// console.log('Blockchain valid?', savjeeCoin.isChainValid() ? 'Yes' : 'No');
 const SPVWallet = new SPV(savjeeCoin.chain)
+const SPVWallet2 = new SPV(savjeeCoin.chain)
 
-// console.log(savjeeCoin.getAllTransactionsForWallet(myWalletAddress));
-// console.log(savjeeCoin.chain)
-
+module.exports.myWalletAddress = mySPVWalletAddress1
+module.exports.SPVWallet = SPVWallet1
+module.exports.myWalletAddress2 = mySPVWalletAddress2
+module.exports.SPVWallet2 = SPVWallet2
+module.exports.miner = miner
+module.exports.savjeeCoin = blockchain
 
 
