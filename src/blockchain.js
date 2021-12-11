@@ -145,6 +145,8 @@ class Blockchain {
     this.difficulty = 2;
     this.pendingTransactions = [];
     this.miningReward = 10;
+    this.minedCoins = 0;
+    this.minerExtra = 1;
   }
 
   /**
@@ -174,10 +176,14 @@ class Blockchain {
   minePendingTransactions(miningRewardAddress) {
     const rewardTx = new Transaction(null, miningRewardAddress, this.miningReward);
     this.pendingTransactions.push(rewardTx);
+    for (let i = 0; i <this.pendingTransactions.length; i++){
+      const tx = new Transaction(this.pendingTransactions[i].fromAddress, miningRewardAddress, this.minerExtra)
+    }
     const block = new Block(Date.now(), this.pendingTransactions, this.getLatestBlock().hash, this.chain.length);
     block.mineBlock(this.difficulty);
 
     debug('Block successfully mined!');
+    this.minedCoins += this.miningReward
     this.chain.push(block);
 
     this.pendingTransactions = [];
@@ -216,11 +222,11 @@ class Blockchain {
       }
     }
     transaction.amount += this.chain.length
-    if (this.getBalanceOfAddress(transaction.fromAddress) < transaction.amount + extra) {
+    if (this.getBalanceOfAddress(transaction.fromAddress) < transaction.amount + extra + this.minerExtra) {
       throw new Error('Not enough balance');
     }
     
-
+    this.minedCoins += transaction.amount + this.minerExtra
     this.pendingTransactions.push(transaction);
     debug('transaction added: %s', transaction);
   }

@@ -12,7 +12,9 @@
     "test": "nyc mocha tests/*.js",
     "lint": "eslint src/** tests/**",
     "coverage": "nyc --reporter=lcov npm run test",
-    "start": "node ./src/p2p"
+    "start_miner": "node ./src/p2p 1111 1234 2345",
+    "start_peer_1": "node ./src/p2p 1234 2345 1111",
+    "start_peer_2": "node ./src/p2p 2345 1111 1234"
   },
   "author": "Xavier Decuyper <hi@savjee.be>",
   "license": "MIT",
