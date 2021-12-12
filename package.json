@@ -35,6 +35,7 @@
     "fully-connected-topology": "^1.1.1",
     "merkletreejs": "^0.2.24",
     "nodemon": "^2.0.15",
+    "prompt-sync": "^4.2.0",
     "ws": "^8.3.0"
   },
   "devDependencies": {

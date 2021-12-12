@@ -57,7 +57,7 @@ class Main {
 
     addTrans(from, to, amount) {
         //burn fee of the current transaction for the intended block.
-        const fee = this.blockchain.pendingTransactions.length / 3 + this.blockchain.chain.length
+        const fee = Math.floor(this.blockchain.pendingTransactions.length / 3) + this.blockchain.chain.length
         //main tx is the main transaction from one address to the second address
         const mainTx = new Transaction(from.publicKey, to.publicKey, amount);
         mainTx.signTransaction(from.keyPair);
