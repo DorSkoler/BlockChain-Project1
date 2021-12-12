@@ -47,22 +47,43 @@ class Main {
         this.SPVWallet2.addSPVHeaders(this.blockchain.chain)
     }
 
-    getTotalNetBalance(){
-        return this.blockchain.getBalanceOfAddress(this.SPVWallet.publicKey) + this.blockchain.getBalanceOfAddress(this.SPVWallet2.publicKey) + this.blockchain.getBalanceOfAddress(this.miner)
+    getTotalNetBalance() {
+        return this.blockchain.totalCoins
     }
 
-    addTrans(from, to, amount){
+    getTotalBlocksMinedCoins() {
+        return this.blockchain.minedCoins
+    }
+
+    addTrans(from, to, amount) {
+        //burn fee of the current transaction for the intended block.
+        const fee = this.blockchain.pendingTransactions.length / 3 + this.blockchain.chain.length
+        //main tx is the main transaction from one address to the second address
         const mainTx = new Transaction(from.publicKey, to.publicKey, amount);
         mainTx.signTransaction(from.keyPair);
         this.blockchain.addTransaction(mainTx);
-        const toMinerTx = new Transaction(from.publicKey, this.miner, this.blockchain.minerExtra);
-        toMinerTx.signTransaction(from.keyPair);
-        this.blockchain.addTransaction(toMinerTx);
-        const amountBurnt = Math.floor(Math.random() * 5) + 1
-        const burnTx = new Transaction(from.publicKey, "Burned-Coins-Address", amountBurnt);
-        burnTx.signTransaction(from.keyPair);
-        this.blockchain.addTransaction(burnTx);
-        return `amount transfered: ${this.blockchain.pendingTransactions[this.blockchain.pendingTransactions.length - 1].amount}, amount burnt: ${amountBurnt}`
+        //first we need to make a new transaction to to miner for 1 coin
+        try {
+            const toMinerTx = new Transaction(from.publicKey, this.miner, this.blockchain.minerExtra);
+            toMinerTx.signTransaction(from.keyPair);
+            this.blockchain.addTransaction(toMinerTx)
+        } catch (error) {
+            //if any of the last transaction failed due to not enough balance we need to pop those last transactions from the pending transactions array.
+            this.blockchain.pendingTransactions[this.blockchain.pendingTransactions.length - 1].pop()
+            throw new Error('Not enough balance');
+        }
+        //after that we need to send the burn fee to the burning address
+        try {
+            const burnTx = new Transaction(from.publicKey, "Burned-Coins-Address", fee);
+            burnTx.signTransaction(from.keyPair);
+            this.blockchain.addTransaction(burnTx);
+        } catch (error) {
+            //if any of the last transaction failed due to not enough balance we need to pop those last transactions from the pending transactions array.
+            this.blockchain.pendingTransactions[this.blockchain.pendingTransactions.length - 1].pop()
+            this.blockchain.pendingTransactions[this.blockchain.pendingTransactions.length - 1].pop()
+            throw new Error('Not enough balance');
+        }
+        return `amount transfered: ${mainTx.amount}, amount burnt: ${fee}, extra for miner: ${this.blockchain.minerExtra}\nTotal transfered: ${mainTx.amount + this.blockchain.minerExtra + fee}`
     }
 
     mine(){
@@ -71,12 +92,22 @@ class Main {
         this.SPVWallet2.addSPVHeaders(this.blockchain.chain)
     }
 
-    showWallet(wallet) {
+    showSPVWallet(wallet) {
         return this.blockchain.getBalanceOfAddress(wallet.publicKey)
     }
 
-    showTotalMinedCoins(){
-        return this.blockchain.minedCoins
+    showMinerWallet(wallet) {
+        return this.blockchain.getBalanceOfAddress(wallet)
+    }
+
+    // showAllTrans(){
+    //     for (const block of this.blockchain.chain){
+    //             console.log(block.transactions);
+    //     }
+    // }
+
+    showTotalBurntCoins() {
+        return `Total burnt coins: ${this.blockchain.burntCoins}`
     }
 }
 

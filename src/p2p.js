@@ -47,32 +47,39 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
         }
         // all the miner actions
         if (peerIp === toLocalIp(peers[0]) && me === MINER_PORT){
+            if (message === 'block mined') {
+                const balance = blockchain.getTotalBlocksMinedCoins()
+                console.log(`Block mined: ${balance}`)
+                return
+            }
             if (message === 'net balance') {
                 const balance = blockchain.getTotalNetBalance()
                 console.log(`Net balance is: ${balance}`)
                 return
             }
-            if (message === 'total mined coins') {
-                const coins = blockchain.showTotalMinedCoins()
-                console.log(`Total mined coins: ${coins}`)
-                return
-            }
             if (message === 'mine') {
                 blockchain.mine()
+                console.log('-------------------');
                 console.log('Mined successfully');
+                console.log('-------------------');
+                return
+            }
+            if (message === 'burnt') {
+                console.log(blockchain.showTotalBurntCoins())
                 return
             }
         }
 
         if (message.slice(0, 6) === 'wallet' && peerIp === toLocalIp(peers[0])) {
             if (message.length === 6 && me === MINER_PORT) {
-                console.log(`Balance of ${peers[0]} - ${blockchain.showWallet(wallets[peers[0]])}`)
-                console.log(`Balance of ${peers[1]} - ${blockchain.showWallet(wallets[peers[1]])}`)
+                console.log(`Balance of ${peers[0]} - ${blockchain.showSPVWallet(wallets[peers[0]])}`)
+                console.log(`Balance of ${peers[1]} - ${blockchain.showSPVWallet(wallets[peers[1]])}`)
+                console.log(`Balance of ${me} - ${blockchain.showMinerWallet(wallets[me])}`)
             }
             else if (me === MINER_PORT) {
                 try {
                     const wallet = message.slice(7)
-                    console.log(`Balance of ${wallet} - ${blockchain.showWallet(wallets[wallet])}`)
+                    console.log(`Balance of ${wallet} - ${blockchain.showSPVWallet(wallets[wallet])}`)
                     return
                 } catch (error) {
                     console.log('No such wallet');
@@ -104,12 +111,13 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
                 
             } catch (error) {
                 console.log('Not enough balance');
+                return
             }
         }
         if (me === MINER_PORT && message[0] === '$'){
             const array = message.split(' ')
             const wallet = array[1]
-            sockets[wallet].write(`Balance of ${wallet} - ${blockchain.showWallet(wallets[wallet])}`)
+            sockets[wallet].write(`Balance of ${wallet} - ${blockchain.showSPVWallet(wallets[wallet])}`)
             return
         }
         console.log(message)

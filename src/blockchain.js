@@ -147,6 +147,8 @@ class Blockchain {
     this.miningReward = 10;
     this.minedCoins = 0;
     this.minerExtra = 1;
+    this.burntCoins = 0;
+    this.totalCoins = 300;
   }
 
   /**
@@ -174,16 +176,27 @@ class Blockchain {
    * @param {string} miningRewardAddress
    */
   minePendingTransactions(miningRewardAddress) {
+    // for each mining we need to push 4 transactions to the new block. 
+    // We will take the first 3 pending transactions and we will add the reward for the miner.
     const rewardTx = new Transaction(null, miningRewardAddress, this.miningReward);
-    this.pendingTransactions.push(rewardTx);
-    const block = new Block(Date.now(), this.pendingTransactions, this.getLatestBlock().hash, this.chain.length);
+    const pending3trans = this.pendingTransactions.slice(0,3)
+    for (const trans of pending3trans) {
+      if (trans.toAddress === 'Burned-Coins-Address'){
+        this.burntCoins += trans.amount
+        this.totalCoins -= trans.amount
+      }
+      this.minedCoins += trans.amount
+    }
+    pending3trans.push(rewardTx);
+    const block = new Block(Date.now(), pending3trans, this.getLatestBlock().hash, this.chain.length);
     block.mineBlock(this.difficulty);
-
+    
     debug('Block successfully mined!');
     this.minedCoins += this.miningReward
+    this.totalCoins += this.miningReward
     this.chain.push(block);
-
-    this.pendingTransactions = [];
+    // finally we need to keep the pending transactions as it was but without the 3 last transactions
+    this.pendingTransactions = this.pendingTransactions.slice(3)
   }
 
   /**
@@ -208,22 +221,12 @@ class Blockchain {
     }
     
     // Making sure that the amount sent is not greater than existing balance
-    let extra = 0
-    for (let i = 0; i < this.pendingTransactions.length; i++){
-      if (this.pendingTransactions[i].fromAddress === transaction.fromAddress){
-        extra += this.pendingTransactions[i].amount
-      }
-      
-      if (this.pendingTransactions[i].toAddress === transaction.fromAddress){
-        extra -= this.pendingTransactions[i].amount
-      }
-    }
-    transaction.amount += this.chain.length
-    if (this.getBalanceOfAddress(transaction.fromAddress) < transaction.amount + extra + this.minerExtra) {
+    
+    if (this.getBalanceOfAddress(transaction.fromAddress) < transaction.amount) {
       throw new Error('Not enough balance');
     }
     
-    this.minedCoins += transaction.amount + this.minerExtra
+    this.minedCoins += transaction.amount
     this.pendingTransactions.push(transaction);
     debug('transaction added: %s', transaction);
   }
@@ -248,7 +251,16 @@ class Blockchain {
         }
       }
     }
-
+    // console.log("before: " + balance);
+    for (const trans of this.pendingTransactions) {
+      if (trans.fromAddress === address){
+        balance -= trans.amount
+      }
+      if (trans.toAddress === address){
+        balance += trans.amount
+      }
+    }
+    // console.log("after: " + balance);
     debug('getBalanceOfAdrees: %s', balance);
     return balance;
   }
