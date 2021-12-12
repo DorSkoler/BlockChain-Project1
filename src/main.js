@@ -29,18 +29,19 @@ class Main {
         // savjeeCoin.pendingTransactions=memPool();
         for (let i = 0; i < 9; i++) {
             for (let i = 0; i < 3; i++) {
-                const amount = Math.floor(Math.random() * 30) + 1
+                const amount = Math.floor(Math.random() * 10) + 1
                 try {
-                    this.addTrans(this.SPVWallet, this.SPVWallet2, amount)
+                    const tx = new Transaction(myWalletAddress, myWalletAddress2, amount);
+                    tx.signTransaction(myKey);
+                    this.blockchain.addTransaction(tx);
                 } catch (error) {
-                    this.addTrans(this.SPVWallet2, this.SPVWallet, amount)
+                    const tx = new Transaction(myWalletAddress2, myWalletAddress, amount);
+                    tx.signTransaction(myKey2);
+                    this.blockchain.addTransaction(tx);
                 }
             }
             this.mine()
         }
-
-
-        // // Check if the chain is valid
 
         this.SPVWallet.addSPVHeaders(this.blockchain.chain)
         this.SPVWallet2.addSPVHeaders(this.blockchain.chain)
@@ -51,10 +52,17 @@ class Main {
     }
 
     addTrans(from, to, amount){
-        const tx = new Transaction(from.publicKey, to.publicKey, amount);
-        tx.signTransaction(from.keyPair);
-        this.blockchain.addTransaction(tx);
-        return this.blockchain.pendingTransactions[this.blockchain.pendingTransactions.length - 1].amount
+        const mainTx = new Transaction(from.publicKey, to.publicKey, amount);
+        mainTx.signTransaction(from.keyPair);
+        this.blockchain.addTransaction(mainTx);
+        const toMinerTx = new Transaction(from.publicKey, this.miner, this.blockchain.minerExtra);
+        toMinerTx.signTransaction(from.keyPair);
+        this.blockchain.addTransaction(toMinerTx);
+        const amountBurnt = Math.floor(Math.random() * 5) + 1
+        const burnTx = new Transaction(from.publicKey, "Burned-Coins-Address", amountBurnt);
+        burnTx.signTransaction(from.keyPair);
+        this.blockchain.addTransaction(burnTx);
+        return `amount transfered: ${this.blockchain.pendingTransactions[this.blockchain.pendingTransactions.length - 1].amount}, amount burnt: ${amountBurnt}`
     }
 
     mine(){

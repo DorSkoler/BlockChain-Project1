@@ -99,7 +99,7 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
             try {
                 const array = message.split(' ')
                 const amount = blockchain.addTrans(wallets[array[1]], wallets[array[2]], parseInt(array[3]))
-                console.log(`Added transaction from: ${array[1]} to: ${array[2]} amount: ${amount}`);
+                console.log(`Added transaction from: ${array[1]} to: ${array[2]} ${amount}`);
                 return
                 
             } catch (error) {

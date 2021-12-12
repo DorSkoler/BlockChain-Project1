@@ -176,9 +176,6 @@ class Blockchain {
   minePendingTransactions(miningRewardAddress) {
     const rewardTx = new Transaction(null, miningRewardAddress, this.miningReward);
     this.pendingTransactions.push(rewardTx);
-    for (let i = 0; i <this.pendingTransactions.length; i++){
-      const tx = new Transaction(this.pendingTransactions[i].fromAddress, miningRewardAddress, this.minerExtra)
-    }
     const block = new Block(Date.now(), this.pendingTransactions, this.getLatestBlock().hash, this.chain.length);
     block.mineBlock(this.difficulty);
 
