@@ -17,6 +17,18 @@ class Transaction {
     this.amount = amount;
     this.timestamp = Date.now();
   }
+  /**
+   * Creates a SHA256 hash of the transaction
+   *
+   * @returns {string}
+   */
+   toString() {
+    return `Transaction -
+    from: ${this.fromAddress}
+    to: ${this.toAddress}
+    amount:${this.amount}
+    time:${this.timestamp}\n`
+    }
 
   /**
    * Creates a SHA256 hash of the transaction

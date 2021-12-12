@@ -10,8 +10,11 @@ const MINER_PORT = '1111'
  burnt_coins: '3',
  wallets_balance :'4',
  mined_coins: '5',
+ exit: '6',
  wallet_balance: '1',
- new_transaction:'2'
+ new_transaction:'2',
+ show_transactions_wallet:'3',
+ find_transaction_index: '4'
 }
 const {
     stdin,
@@ -37,16 +40,19 @@ const myIp = toLocalIp(me)
 const peerIps = getPeerIps(peers)
 let blockchain
 let wallets
+let hashToAddress ={}
 if (me === MINER_PORT) {
     blockchain = new Main()
     wallets = {}
     wallets[me] = blockchain.miner
     wallets[peers[0]] = blockchain.SPVWallet
     wallets[peers[1]] = blockchain.SPVWallet2
-    console.log("\n ------- Blockchain Miner - Choose your action ------- \n1)Mine Transactions\n2)Blockchain Balance\n3)Total Burnt Coins\n4)Wallets Balance\n5)Total Mined Coins\n");
+    hashToAddress[wallets[peers[0]].publicKey] = "Address Wallet 1"
+    hashToAddress[wallets[peers[1]].publicKey] = "Address Wallet 2"
+    hashToAddress[null] = "Reward Tx - None"
+    menuMiner()
 } else{
-    console.log("\n ------- Blockchain Wallet - Choose your action ------- \n1)Balance\n2)New Transaction\n");
-
+    menuPeer()
 }
 
 //connect to peers
@@ -54,42 +60,44 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
     const peerPort = extractPortFromIp(peerIp)
     log('connected to peer - ', peerPort)
     sockets[peerPort] = socket
-    // if (me === MINER_PORT)
-    //     console.log("1)Mine Transactions\n2)Blockchain Balance\n3)Total Burnt Coins\n4)Wallets Balance\n5)Total Mined Coins\n");
-
 
     stdin.on('data', data => { //on user input
         let message = data.toString().trim()
-        if (message === 'exit') { //on exit
-            log('Bye bye')
-            exit(0)
-        }
         // all the miner actions
         if (peerIp === toLocalIp(peers[0]) && me === MINER_PORT){
             switch (message) {
                 case MESSAGE_TYPE.mine_transactions:
-                    blockchain.mine()
-                    console.log('-------------------')
-                    console.log('Mined successfully')
-                    console.log('-------------------')
+                    blockchain.mineTransactions()
+                    console.log('------------------- Mined successfully -------------------')
+                    menuMiner()
                     return
                 case MESSAGE_TYPE.blockchain_network_balance:
-                    const balance = blockchain.getTotalNetBalance()
-                    console.log(`Net balance is: ${balance}`)
+                    const balance = blockchain.getTotalBlockchainBalance()
+                    console.log(` ----------- Blockchain network balance : ${balance} -----------`)
+                    menuMiner()
                     return
                 case MESSAGE_TYPE.burnt_coins:
-                    console.log(blockchain.showTotalBurntCoins())
+                    const burntCoins = blockchain.getTotalBurntCoins()
+                    console.log(` ----------- Blockchain Burnt Coins : ${burntCoins} -----------`)
+                    menuMiner()
                     return
                 case MESSAGE_TYPE.wallets_balance:
                     console.log(`Balance of ${peers[0]} - ${blockchain.showSPVWallet(wallets[peers[0]])}`)
                     console.log(`Balance of ${peers[1]} - ${blockchain.showSPVWallet(wallets[peers[1]])}`)
                     console.log(`Balance of ${me} - ${blockchain.showMinerWallet(wallets[me])}`)
+                    menuMiner()
                     return   
                 case MESSAGE_TYPE.mined_coins:
                     const minedCoins = blockchain.getTotalBlocksMinedCoins()
-                    console.log(`Block mined: ${minedCoins}`)
+                    console.log(` ----------- Total Mined Coins : ${minedCoins} -----------`)
+                    menuMiner()
                     return
+                case MESSAGE_TYPE.exit:
+                    console.log('Bye bye')
+                    exit(0)
                 default:
+                    console.log("Please enter valid option");
+                    menuMiner()
                     break
             }
         }
@@ -103,7 +111,16 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
                     var amount = prompt("How much do you want to transfer?")
                     sockets[MINER_PORT].write(`# ${me} ${peer} ${amount}`)
                     return
+                case MESSAGE_TYPE.show_transactions_wallet:
+                    sockets[MINER_PORT].write(`% ${me}`)
+                    return 
+                case MESSAGE_TYPE.find_transaction_index:
+                    var indexTx = prompt("Which Transaction do you want to search for? Enter index >= 1 : ")
+                    sockets[MINER_PORT].write(`! ${me} ${indexTx-1}`)
+                    return        
                 default:
+                    console.log("Please enter valid option");
+                    menuPeer()
                     break;
             }
             
@@ -113,29 +130,49 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
     //print data when received
     socket.on('data', data => {
         let message = data.toString().trim()
-        if (me === MINER_PORT && message[0] === '#') {
-            try {
-                const array = message.split(' ')
-                const amount = blockchain.addTrans(wallets[array[1]], wallets[array[2]], parseInt(array[3]))
-                console.log(`Added transaction from: ${array[1]} to: ${array[2]} ${amount}`);
-                return
-                
-            } catch (error) {
-                console.log('Not enough balance');
-                return
-            }
-        }
-        if (me === MINER_PORT && message[0] === '$'){
+        if(me===MINER_PORT){
             const array = message.split(' ')
             const wallet = array[1]
-            sockets[wallet].write(`Balance of ${wallet} - ${blockchain.showSPVWallet(wallets[wallet])}`)
-            return
+            switch (message[0]) {
+                case '#':
+                    try {
+                        const amount = blockchain.addTrans(wallets[array[1]], wallets[array[2]], parseInt(array[3]))
+                        console.log(`Added transaction from: ${array[1]} to: ${array[2]} ${amount}`);
+                        return
+                        
+                    } catch (error) {
+                        console.log('----------- Not enough balance -----------');
+                        return
+                    }
+                case '$':
+                    sockets[wallet].write(`Balance of ${wallet} - ${blockchain.showSPVWallet(wallets[wallet])}`)
+                    return
+                case '%':
+                    const transactions = blockchain.blockchain.getAllTransactionsForWallet(wallets[wallet].publicKey)
+                    var txstring=''
+                    for(let i=0; i<transactions.length ; i++)
+                      txstring+=`\nTransaction ${i+1}\n{\n\tFrom Address : ${hashToAddress[transactions[i].fromAddress]},\n\tTo Address : ${hashToAddress[transactions[i].toAddress]},\n\tAmount : ${transactions[i].amount},\n\tTimestamp : ${transactions[i].timestamp}\n}\n`
+                    sockets[wallet].write(txstring)
+                    return
+                case '!':
+                    const index = array[2]
+                    const txs = blockchain.blockchain.getAllTransactionsForWallet(wallets[wallet].publicKey)
+                    sockets[wallet].write(`Transaction is valid : ${wallets[wallet].isTsxInBlockChain(txs[index]) ? true : false}`)    
+                default:
+                    return
+            }
         }
-        console.log(message)
+        console.log(message);
+        menuPeer()
     })
 })
 
-function mineChain(){
+function menuPeer(){
+    console.log("\n ------- Blockchain Wallet - Choose your action ------- \n1)Balance\n2)New Transaction\n3)All Transactions\n4)Valid Transaction By Index");
+
+}
+function menuMiner(){
+    console.log("\n ------- Blockchain Miner - Choose your action ------- \n1)Mine Transactions\n2)Blockchain Balance\n3)Total Burnt Coins\n4)Wallets Balance\n5)Total Mined Coins\n6)Exit");
 
 }
 

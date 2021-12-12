@@ -1,7 +1,6 @@
 const { Blockchain, Transaction, SPV } = require('./blockchain');
 const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
-
 class Main {
     constructor() {
         // Your private key goes here
@@ -18,12 +17,12 @@ class Main {
         this.blockchain = new Blockchain();
         this.SPVWallet = new SPV(this.blockchain.chain, myKey, myWalletAddress)
         this.SPVWallet2 = new SPV(this.blockchain.chain, myKey2, myWalletAddress2)
-        const tx = new Transaction(null, myWalletAddress, 100);
-        const tx1 = new Transaction(null, myWalletAddress2, 100);
-        const tx2 = new Transaction(null, this.miner, 100);
-        this.blockchain.pendingTransactions.push(tx);
-        this.blockchain.pendingTransactions.push(tx1);
-        this.blockchain.pendingTransactions.push(tx2);
+        const txRewardWallet1 = new Transaction(null, myWalletAddress, 100);
+        const txRewardWallet2 = new Transaction(null, myWalletAddress2, 100);
+        const txRewardMiner = new Transaction(null, this.miner, 100);
+        this.blockchain.pendingTransactions.push(txRewardWallet1);
+        this.blockchain.pendingTransactions.push(txRewardWallet2);
+        this.blockchain.pendingTransactions.push(txRewardMiner);
         this.blockchain.minePendingTransactions(this.miner);
 
         // savjeeCoin.pendingTransactions=memPool();
@@ -40,19 +39,22 @@ class Main {
                     this.blockchain.addTransaction(tx);
                 }
             }
-            this.mine()
+            this.mineTransactions()
         }
 
-        this.SPVWallet.addSPVHeaders(this.blockchain.chain)
-        this.SPVWallet2.addSPVHeaders(this.blockchain.chain)
+        this.SPVWallet.blockChainHeaders = this.SPVWallet.addSPVHeaders(this.blockchain.chain)
+        this.SPVWallet2.blockChainHeaders = this.SPVWallet2.addSPVHeaders(this.blockchain.chain)
     }
 
-    getTotalNetBalance() {
+    getTotalBlockchainBalance() {
         return this.blockchain.totalCoins
     }
 
     getTotalBlocksMinedCoins() {
         return this.blockchain.minedCoins
+    }
+    getTotalBurntCoins() {
+        return this.blockchain.burntCoins
     }
 
     addTrans(from, to, amount) {
@@ -86,10 +88,10 @@ class Main {
         return `amount transfered: ${mainTx.amount}, amount burnt: ${fee}, extra for miner: ${this.blockchain.minerExtra}\nTotal transfered: ${mainTx.amount + this.blockchain.minerExtra + fee}`
     }
 
-    mine(){
+    mineTransactions(){
         this.blockchain.minePendingTransactions(this.miner);
-        this.SPVWallet.addSPVHeaders(this.blockchain.chain)
-        this.SPVWallet2.addSPVHeaders(this.blockchain.chain)
+        this.SPVWallet.blockChainHeaders = this.SPVWallet.addSPVHeaders(this.blockchain.chain)
+        this.SPVWallet2.blockChainHeaders = this.SPVWallet2.addSPVHeaders(this.blockchain.chain)
     }
 
     showSPVWallet(wallet) {
@@ -98,17 +100,7 @@ class Main {
 
     showMinerWallet(wallet) {
         return this.blockchain.getBalanceOfAddress(wallet)
-    }
-
-    // showAllTrans(){
-    //     for (const block of this.blockchain.chain){
-    //             console.log(block.transactions);
-    //     }
-    // }
-
-    showTotalBurntCoins() {
-        return `Total burnt coins: ${this.blockchain.burntCoins}`
-    }
+    }    
 }
 
 module.exports.Main = Main;
