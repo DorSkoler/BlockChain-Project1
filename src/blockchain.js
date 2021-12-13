@@ -283,6 +283,10 @@ class Blockchain {
       }
     }
 
+    for (const trans of this.pendingTransactions){
+      txs.push(trans);
+    }
+
     debug('get transactions for wallet count: %s', txs.length);
     return txs;
   }

@@ -4,18 +4,23 @@ const prompt = require('prompt-sync')();
 
 const MINER_PORT = '1111'
 
- const MESSAGE_TYPE = {
+const MESSAGE_TYPE_MINER = {
  mine_transactions: '1',
  blockchain_network_balance: '2',
  burnt_coins: '3',
  wallets_balance :'4',
  mined_coins: '5',
  exit: '6',
- wallet_balance: '1',
- new_transaction:'2',
- show_transactions_wallet:'3',
- find_transaction_index: '4'
 }
+
+const MESSAGE_TYPE_PEER = {
+    wallet_balance: '1',
+    new_transaction:'2',
+    show_transactions_wallet:'3',
+    find_transaction_index: '4',
+    exit: '5'
+}
+
 const {
     stdin,
     exit,
@@ -66,33 +71,33 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
         // all the miner actions
         if (peerIp === toLocalIp(peers[0]) && me === MINER_PORT){
             switch (message) {
-                case MESSAGE_TYPE.mine_transactions:
+                case MESSAGE_TYPE_MINER.mine_transactions:
                     blockchain.mineTransactions()
                     console.log('------------------- Mined successfully -------------------')
                     menuMiner()
                     return
-                case MESSAGE_TYPE.blockchain_network_balance:
+                case MESSAGE_TYPE_MINER.blockchain_network_balance:
                     const balance = blockchain.getTotalBlockchainBalance()
                     console.log(` ----------- Blockchain network balance : ${balance} -----------`)
                     menuMiner()
                     return
-                case MESSAGE_TYPE.burnt_coins:
+                case MESSAGE_TYPE_MINER.burnt_coins:
                     const burntCoins = blockchain.getTotalBurntCoins()
                     console.log(` ----------- Blockchain Burnt Coins : ${burntCoins} -----------`)
                     menuMiner()
                     return
-                case MESSAGE_TYPE.wallets_balance:
+                case MESSAGE_TYPE_MINER.wallets_balance:
                     console.log(`Balance of ${peers[0]} - ${blockchain.showSPVWallet(wallets[peers[0]])}`)
                     console.log(`Balance of ${peers[1]} - ${blockchain.showSPVWallet(wallets[peers[1]])}`)
                     console.log(`Balance of ${me} - ${blockchain.showMinerWallet(wallets[me])}`)
                     menuMiner()
                     return   
-                case MESSAGE_TYPE.mined_coins:
+                case MESSAGE_TYPE_MINER.mined_coins:
                     const minedCoins = blockchain.getTotalBlocksMinedCoins()
                     console.log(` ----------- Total Mined Coins : ${minedCoins} -----------`)
                     menuMiner()
                     return
-                case MESSAGE_TYPE.exit:
+                case MESSAGE_TYPE_MINER.exit:
                     console.log('Bye bye')
                     exit(0)
                 default:
@@ -103,21 +108,34 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
         }
         if(me!== MINER_PORT && peerIp === toLocalIp(peers[0])){
             switch (message) {
-                case MESSAGE_TYPE.wallet_balance:                    
+                case MESSAGE_TYPE_PEER.wallet_balance:                    
                     sockets[MINER_PORT].write(`$ ${me}`)
                     return
-                case MESSAGE_TYPE.new_transaction:
-                    var peer = prompt("Which peer to transfer?")
-                    var amount = prompt("How much do you want to transfer?")
+                case MESSAGE_TYPE_PEER.new_transaction:
+                    var peer = prompt("Which peer to transfer?", NaN)
+                    var amount = prompt("How much do you want to transfer?", NaN)
+                    if (!amount || !peer){
+                        console.log("\nEnter value again")
+                        menuPeer()
+                        return
+                    }
+                    if (peers.indexOf(peer) === -1){
+                        console.log("\nwrong peer number");
+                        menuPeer()
+                        return
+                    }
                     sockets[MINER_PORT].write(`# ${me} ${peer} ${amount}`)
                     return
-                case MESSAGE_TYPE.show_transactions_wallet:
+                case MESSAGE_TYPE_PEER.show_transactions_wallet:
                     sockets[MINER_PORT].write(`% ${me}`)
                     return 
-                case MESSAGE_TYPE.find_transaction_index:
+                case MESSAGE_TYPE_PEER.find_transaction_index:
                     var indexTx = prompt("Which Transaction do you want to search for? Enter index >= 1 : ")
                     sockets[MINER_PORT].write(`! ${me} ${indexTx-1}`)
-                    return        
+                    return
+                case MESSAGE_TYPE_PEER.exit:
+                    console.log('Bye bye')
+                    exit(0)       
                 default:
                     console.log("Please enter valid option");
                     menuPeer()
@@ -136,12 +154,20 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
             switch (message[0]) {
                 case '#':
                     try {
+                        console.log(array[2]);
+                        if (array[2] === MINER_PORT) {
+                            
+                            sockets[wallet].write('You are not allowed to transfer this port')
+                            return
+                        }
                         const amount = blockchain.addTrans(wallets[array[1]], wallets[array[2]], parseInt(array[3]))
-                        console.log(`Added transaction from: ${array[1]} to: ${array[2]} ${amount}`);
+                        console.log(`Added transaction from: ${[array[1]]} to: ${[array[2]]} ${amount}`);
+                        sockets[wallet].write(`${amount}\nto: ${array[2]}`)
                         return
                         
                     } catch (error) {
                         console.log('----------- Not enough balance -----------');
+                        sockets[wallet].write('You do not have enough balance to transfer')
                         return
                     }
                 case '$':
@@ -162,13 +188,13 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
                     return
             }
         }
-        console.log(message);
+        console.log("\n" + message);
         menuPeer()
     })
 })
 
 function menuPeer(){
-    console.log("\n ------- Blockchain Wallet - Choose your action ------- \n1)Balance\n2)New Transaction\n3)All Transactions\n4)Valid Transaction By Index");
+    console.log("\n ------- Blockchain Wallet - Choose your action ------- \n1)Balance\n2)New Transaction\n3)All Transactions\n4)Valid Transaction By Index\n5)Exit");
 
 }
 function menuMiner(){

@@ -49,9 +49,9 @@ class Main {
             this.mineTransactions()
         }
         
-        //updating the SPV wallets headers after the mining of mempool transactions
-        this.SPVWallet.blockChainHeaders = this.SPVWallet.addSPVHeaders(this.blockchain.chain)
-        this.SPVWallet2.blockChainHeaders = this.SPVWallet2.addSPVHeaders(this.blockchain.chain)
+        // //updating the SPV wallets headers after the mining of mempool transactions
+        // this.SPVWallet.blockChainHeaders = this.SPVWallet.addSPVHeaders(this.blockchain.chain)
+        // this.SPVWallet2.blockChainHeaders = this.SPVWallet2.addSPVHeaders(this.blockchain.chain)
     }
 
     getTotalBlockchainBalance() {

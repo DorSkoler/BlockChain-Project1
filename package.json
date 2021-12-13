@@ -14,7 +14,8 @@
     "coverage": "nyc --reporter=lcov npm run test",
     "start_miner": "node ./src/p2p 1111 1234 2345",
     "start_peer_1": "node ./src/p2p 1234 2345 1111",
-    "start_peer_2": "node ./src/p2p 2345 1111 1234"
+    "start_peer_2": "node ./src/p2p 2345 1111 1234",
+    "start_bloomfilter": "node ./src/bloomfiltersearch"
   },
   "author": "Xavier Decuyper <hi@savjee.be>",
   "license": "MIT",
