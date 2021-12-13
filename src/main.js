@@ -1,22 +1,26 @@
 const { Blockchain, Transaction, SPV } = require('./blockchain');
+const fs = require('fs');
+
 const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 class Main {
     constructor() {
-        // Your private key goes here
+        //private key for each node
         const myKey = ec.genKeyPair();
         const myKey2 = ec.genKeyPair();
         const minerKey = ec.genKeyPair();
 
-        // From that we can calculate your public key (which doubles as your wallet address)
+        // getting the public key address for each node
         const myWalletAddress = myKey.getPublic('hex');
         const myWalletAddress2 = myKey2.getPublic('hex');
         this.miner = minerKey.getPublic('hex');
 
         // Create new instance of Blockchain class
         this.blockchain = new Blockchain();
+        // Create new SPV Wallets
         this.SPVWallet = new SPV(this.blockchain.chain, myKey, myWalletAddress)
         this.SPVWallet2 = new SPV(this.blockchain.chain, myKey2, myWalletAddress2)
+        //Create initial balance for each node and mining them.
         const txRewardWallet1 = new Transaction(null, myWalletAddress, 100);
         const txRewardWallet2 = new Transaction(null, myWalletAddress2, 100);
         const txRewardMiner = new Transaction(null, this.miner, 100);
@@ -25,7 +29,6 @@ class Main {
         this.blockchain.pendingTransactions.push(txRewardMiner);
         this.blockchain.minePendingTransactions(this.miner);
 
-        // savjeeCoin.pendingTransactions=memPool();
         for (let i = 0; i < 9; i++) {
             for (let i = 0; i < 3; i++) {
                 const amount = Math.floor(Math.random() * 10) + 1
@@ -39,9 +42,14 @@ class Main {
                     this.blockchain.addTransaction(tx);
                 }
             }
+            // Each iteration we need to concatenate to end of file the new transactions before mining them to the blockchain
+            fs.writeFile('mempool_transactions.txt', JSON.stringify(this.blockchain.pendingTransactions,null,2),{'flag':'a'}, function (err) {
+                if (err) return console.log(err);
+            });
             this.mineTransactions()
         }
-
+        
+        //updating the SPV wallets headers after the mining of mempool transactions
         this.SPVWallet.blockChainHeaders = this.SPVWallet.addSPVHeaders(this.blockchain.chain)
         this.SPVWallet2.blockChainHeaders = this.SPVWallet2.addSPVHeaders(this.blockchain.chain)
     }
@@ -90,6 +98,7 @@ class Main {
 
     mineTransactions(){
         this.blockchain.minePendingTransactions(this.miner);
+        //updating the spv wallet after mining new transactions.
         this.SPVWallet.blockChainHeaders = this.SPVWallet.addSPVHeaders(this.blockchain.chain)
         this.SPVWallet2.blockChainHeaders = this.SPVWallet2.addSPVHeaders(this.blockchain.chain)
     }

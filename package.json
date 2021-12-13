@@ -30,7 +30,7 @@
     "debug": "^4.1.1",
     "elliptic": "^6.5.4",
     "express": "^4.17.1",
-    "fs": "^0.0.1-security",
+    "fs": "0.0.1-security",
     "fs-extra": "^10.0.0",
     "fully-connected-topology": "^1.1.1",
     "merkletreejs": "^0.2.24",
