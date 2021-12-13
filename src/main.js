@@ -79,7 +79,7 @@ class Main {
             this.blockchain.addTransaction(toMinerTx)
         } catch (error) {
             //if any of the last transaction failed due to not enough balance we need to pop those last transactions from the pending transactions array.
-            this.blockchain.pendingTransactions[this.blockchain.pendingTransactions.length - 1].pop()
+            this.blockchain.pendingTransactions.pop()
             throw new Error('Not enough balance');
         }
         //after that we need to send the burn fee to the burning address
@@ -89,8 +89,8 @@ class Main {
             this.blockchain.addTransaction(burnTx);
         } catch (error) {
             //if any of the last transaction failed due to not enough balance we need to pop those last transactions from the pending transactions array.
-            this.blockchain.pendingTransactions[this.blockchain.pendingTransactions.length - 1].pop()
-            this.blockchain.pendingTransactions[this.blockchain.pendingTransactions.length - 1].pop()
+            this.blockchain.pendingTransactions.pop()
+            this.blockchain.pendingTransactions.pop()
             throw new Error('Not enough balance');
         }
         return `amount transfered: ${mainTx.amount}, amount burnt: ${fee}, extra for miner: ${this.blockchain.minerExtra}\nTotal transfered: ${mainTx.amount + this.blockchain.minerExtra + fee}`

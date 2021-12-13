@@ -21,6 +21,11 @@ const MESSAGE_TYPE_PEER = {
     exit: '5'
 }
 
+const MESSAGE_HANDLER = {
+    add_transaction : '#',
+    check_balance: '$'
+}
+
 const {
     stdin,
     exit,
@@ -156,7 +161,6 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
                     try {
                         console.log(array[2]);
                         if (array[2] === MINER_PORT) {
-                            
                             sockets[wallet].write('You are not allowed to transfer this port')
                             return
                         }
@@ -183,7 +187,7 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
                 case '!':
                     const index = array[2]
                     const txs = blockchain.blockchain.getAllTransactionsForWallet(wallets[wallet].publicKey)
-                    sockets[wallet].write(`Transaction is valid : ${wallets[wallet].isTsxInBlockChain(txs[index]) ? true : false}`)    
+                    sockets[wallet].write(`Transaction is valid : ${wallets[wallet].isTsxInBlockChain(txs[index]) ? true + `\n\nTransaction\n{\n\tFrom Address : ${hashToAddress[txs[index].fromAddress]},\n\tTo Address : ${hashToAddress[txs[index].toAddress]},\n\tAmount : ${txs[index].amount},\n\tTimestamp : ${txs[index].timestamp}\n}\n` : false}`)    
                 default:
                     return
             }
