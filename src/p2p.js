@@ -1,6 +1,7 @@
 const topology = require('fully-connected-topology')
 const { Main } = require('./main')
 const prompt = require('prompt-sync')();
+const fs = require('fs');
 
 const MINER_PORT = '1111'
 
@@ -23,7 +24,9 @@ const MESSAGE_TYPE_PEER = {
 
 const MESSAGE_HANDLER = {
     add_transaction : '#',
-    check_balance: '$'
+    check_balance: '$',
+    print_transaction: '%',
+    check_transaction_index: '!'
 }
 
 const {
@@ -104,6 +107,12 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
                     return
                 case MESSAGE_TYPE_MINER.exit:
                     console.log('Bye bye')
+                    fs.unlink('mempool_transactions.txt', function (err) {
+                        if (err) throw err;
+                        // if no error, file has been deleted successfully
+                        console.log('mempool file deleted!');
+                    });
+                    
                     exit(0)
                 default:
                     console.log("Please enter valid option");
@@ -117,15 +126,15 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
                     sockets[MINER_PORT].write(`$ ${me}`)
                     return
                 case MESSAGE_TYPE_PEER.new_transaction:
-                    var peer = prompt("Which peer to transfer?", NaN)
-                    var amount = prompt("How much do you want to transfer?", NaN)
+                    var peer = prompt("Which peer to transfer?")
+                    var amount = prompt("How much do you want to transfer?")
                     if (!amount || !peer){
                         console.log("\nEnter value again")
                         menuPeer()
                         return
                     }
                     if (peers.indexOf(peer) === -1){
-                        console.log("\nwrong peer number");
+                        console.log("\nWrong peer number");
                         menuPeer()
                         return
                     }
@@ -157,7 +166,7 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
             const array = message.split(' ')
             const wallet = array[1]
             switch (message[0]) {
-                case '#':
+                case MESSAGE_HANDLER.add_transaction:
                     try {
                         console.log(array[2]);
                         if (array[2] === MINER_PORT) {
@@ -174,17 +183,17 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
                         sockets[wallet].write('You do not have enough balance to transfer')
                         return
                     }
-                case '$':
+                case MESSAGE_HANDLER.check_balance:
                     sockets[wallet].write(`Balance of ${wallet} - ${blockchain.showSPVWallet(wallets[wallet])}`)
                     return
-                case '%':
+                case MESSAGE_HANDLER.print_transaction:
                     const transactions = blockchain.blockchain.getAllTransactionsForWallet(wallets[wallet].publicKey)
                     var txstring=''
                     for(let i=0; i<transactions.length ; i++)
                       txstring+=`\nTransaction ${i+1}\n{\n\tFrom Address : ${hashToAddress[transactions[i].fromAddress]},\n\tTo Address : ${hashToAddress[transactions[i].toAddress]},\n\tAmount : ${transactions[i].amount},\n\tTimestamp : ${transactions[i].timestamp}\n}\n`
                     sockets[wallet].write(txstring)
                     return
-                case '!':
+                case MESSAGE_HANDLER.check_transaction_index:
                     const index = array[2]
                     const txs = blockchain.blockchain.getAllTransactionsForWallet(wallets[wallet].publicKey)
                     sockets[wallet].write(`Transaction is valid : ${wallets[wallet].isTsxInBlockChain(txs[index]) ? true + `\n\nTransaction\n{\n\tFrom Address : ${hashToAddress[txs[index].fromAddress]},\n\tTo Address : ${hashToAddress[txs[index].toAddress]},\n\tAmount : ${txs[index].amount},\n\tTimestamp : ${txs[index].timestamp}\n}\n` : false}`)    

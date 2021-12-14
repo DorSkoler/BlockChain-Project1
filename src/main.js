@@ -29,7 +29,7 @@ class Main {
         this.blockchain.pendingTransactions.push(txRewardMiner);
         this.blockchain.minePendingTransactions(this.miner);
 
-        for (let i = 0; i < 9; i++) {
+        for (let i = 0; i < 10; i++) {
             for (let i = 0; i < 3; i++) {
                 const amount = Math.floor(Math.random() * 10) + 1
                 try {
@@ -48,10 +48,6 @@ class Main {
             });
             this.mineTransactions()
         }
-        
-        // //updating the SPV wallets headers after the mining of mempool transactions
-        // this.SPVWallet.blockChainHeaders = this.SPVWallet.addSPVHeaders(this.blockchain.chain)
-        // this.SPVWallet2.blockChainHeaders = this.SPVWallet2.addSPVHeaders(this.blockchain.chain)
     }
 
     getTotalBlockchainBalance() {

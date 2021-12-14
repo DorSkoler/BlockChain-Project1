@@ -1,9 +1,10 @@
 const crypto = require('crypto');
-const {MerkleTree} = require('merkletreejs')
+const { MerkleTree } = require('merkletreejs')
 const SHA256 = require('crypto-js/sha256')
 const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 const debug = require('debug')('savjeecoin:blockchain');
+const { BloomFilter } = require('bloom-filters');
 
 class Transaction {
   /**
@@ -42,7 +43,7 @@ class Transaction {
     if (signingKey.getPublic('hex') !== this.fromAddress) {
       throw new Error('You cannot sign transactions for other wallets!');
     }
-    
+
 
     // Calculate the hash of this transaction, sign it with the key
     // and store it inside the transaction object
@@ -83,8 +84,8 @@ class Block {
     this.timestamp = timestamp;
     this.transactions = transactions;
     this.nonce = 0;
-    this.leaves= this.transactions.map(x=>SHA256(x.signature))
-    this.merkleTree = new MerkleTree(this.leaves,SHA256)
+    this.leaves = this.transactions.map(x => SHA256(x.signature))
+    this.merkleTree = new MerkleTree(this.leaves, SHA256)
     this.merkleTreeRoot = this.merkleTree.getHexRoot()
     this.hash = this.calculateHash();
     this.id = id;
@@ -98,13 +99,8 @@ class Block {
    */
   calculateHash() {
 
-    // merkleTree.toString('hex')
-    // return merkleTree.getHexRoot()
-    //return crypto.createHash('sha256').update(merkleTree).digest('hex');
-       return crypto.createHash('sha256').update(this.previousHash + this.timestamp + this.merkleTreeRoot + this.nonce).digest('hex');
+    return crypto.createHash('sha256').update(this.previousHash + this.timestamp + this.merkleTreeRoot + this.nonce).digest('hex');
 
-    // testing hash only with merkle tree root
-    // return crypto.createHash('sha256').update(this.merkleTree.getHexRoot()+this.nonce).digest('hex');
   }
 
   /**
@@ -179,9 +175,9 @@ class Blockchain {
     // for each mining we need to push 4 transactions to the new block. 
     // We will take the first 3 pending transactions and we will add the reward for the miner.
     const rewardTx = new Transaction(null, miningRewardAddress, this.miningReward);
-    const pending3trans = this.pendingTransactions.slice(0,3)
+    const pending3trans = this.pendingTransactions.slice(0, 3)
     for (const trans of pending3trans) {
-      if (trans.toAddress === 'Burned-Coins-Address'){
+      if (trans.toAddress === 'Burned-Coins-Address') {
         this.burntCoins += trans.amount
         this.totalCoins -= trans.amount
       }
@@ -190,7 +186,7 @@ class Blockchain {
     pending3trans.push(rewardTx);
     const block = new Block(Date.now(), pending3trans, this.getLatestBlock().hash, this.chain.length);
     block.mineBlock(this.difficulty);
-    
+
     debug('Block successfully mined!');
     this.minedCoins += this.miningReward
     this.totalCoins += this.miningReward
@@ -215,18 +211,17 @@ class Blockchain {
     if (!transaction.isValid()) {
       throw new Error('Cannot add invalid transaction to chain');
     }
-    
+
     if (transaction.amount <= 0) {
       throw new Error('Transaction amount should be higher than 0');
     }
-    
+
     // Making sure that the amount sent is not greater than existing balance
-    
+
     if (this.getBalanceOfAddress(transaction.fromAddress) < transaction.amount) {
       throw new Error('Not enough balance');
     }
-    
-    this.minedCoins += transaction.amount
+
     this.pendingTransactions.push(transaction);
     debug('transaction added: %s', transaction);
   }
@@ -253,10 +248,10 @@ class Blockchain {
     }
     // console.log("before: " + balance);
     for (const trans of this.pendingTransactions) {
-      if (trans.fromAddress === address){
+      if (trans.fromAddress === address) {
         balance -= trans.amount
       }
-      if (trans.toAddress === address){
+      if (trans.toAddress === address) {
         balance += trans.amount
       }
     }
@@ -283,7 +278,10 @@ class Blockchain {
       }
     }
 
-    for (const trans of this.pendingTransactions){
+    // If the user want to print the transactions, 
+    // we will print also the pending transactions so if the user want to search for specific transaction,
+    // it will return boolean value if the transaction is Valid.
+    for (const trans of this.pendingTransactions) {
       txs.push(trans);
     }
 
@@ -330,50 +328,60 @@ class Blockchain {
 }
 
 class SPV {
-  constructor(Blockchain, key, publicKey){
+  constructor(Blockchain, key, publicKey) {
     this.blockChainHeaders = this.addSPVHeaders(Blockchain)
     this.keyPair = key
     this.publicKey = publicKey
+    this.bloomFilter = new BloomFilter(30000, 6);
   }
 
- /**
-   * Add all headers from the blockchain without the transactions of each block.
-   *
-   * @param {Blockchain} Blockchain
-   */
-    addSPVHeaders(Blockchain){
-      const blockHeaders = []
-      for (let index = 0; index < Blockchain.length; index++) {
-        const block = Blockchain[index]
-        const newHeader = {
-          blockID: index+1,
-          blockNonce: block.nonce,
-          blockHash:block.hash,
-          blockMerkle:block.merkleTree,
-          blockMerkleRoot:block.merkleTreeRoot,
-          blockTimestamp: block.timestamp,
-          blockPrevHash: block.previousHash
-        }
-        blockHeaders.push(newHeader)
+  /**
+    * Add all headers from the blockchain without the transactions of each block.
+    *
+    * @param {Blockchain} blockchain
+    */
+  addSPVHeaders(blockchain) {
+    const blockHeaders = []
+    for (let index = 0; index < blockchain.length; index++) {
+      const block = blockchain[index]
+      const newHeader = {
+        blockID: index + 1,
+        blockNonce: block.nonce,
+        blockHash: block.hash,
+        blockMerkle: block.merkleTree,
+        blockMerkleRoot: block.merkleTreeRoot,
+        blockTimestamp: block.timestamp,
+        blockPrevHash: block.previousHash
       }
-      return blockHeaders
+      blockHeaders.push(newHeader)
+      // adding the hash of each transaction to the bloom filter structure.
     }
+    for (const trans of blockchain[blockchain.length - 1].transactions) {
+      this.bloomFilter.add((trans.fromAddress + trans.toAddress + trans.amount + trans.timestamp))
+    }
+    return blockHeaders
+  }
   /**
    * Checking whether a transaction is inside a block and if that transaction is valid.
    *
    * @param {Transaction} transaction
    */
-    isTsxInBlockChain(tsx){
-        const leafTx = SHA256(tsx.signature)
-        for (let i=0; i<this.blockChainHeaders.length ; i++) {
-            const merkleTree = this.blockChainHeaders[i].blockMerkle
-            const merkleTreeRoot = this.blockChainHeaders[i].blockMerkleRoot
-            const proof = merkleTree.getProof(leafTx)
-            if(merkleTree.verify(proof,leafTx,merkleTreeRoot) && tsx.isValid())
-              return true
-        }
-        return false
+  isTsxInBlockChain(tsx) {
+    // checking if the transaction is inside the bloom filter first with the false-positive method
+    if (!this.bloomFilter.has((tsx.fromAddress + tsx.toAddress + tsx.amount + tsx.timestamp))) {
+      return false;
     }
+
+    const leafTx = SHA256(tsx.signature)
+    for (let i = 0; i < this.blockChainHeaders.length; i++) {
+      const merkleTree = this.blockChainHeaders[i].blockMerkle
+      const merkleTreeRoot = this.blockChainHeaders[i].blockMerkleRoot
+      const proof = merkleTree.getProof(leafTx)
+      if (merkleTree.verify(proof, leafTx, merkleTreeRoot) && tsx.isValid())
+        return true
+    }
+    return false
+  }
 
 }
 
